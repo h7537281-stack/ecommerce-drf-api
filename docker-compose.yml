@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # 1. حاوية قاعدة البيانات PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: ecommerce_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=ecomm_db
+      - POSTGRES_USER=ecomm_user
+      - POSTGRES_PASSWORD=ecomm_pass
+    ports:
+      - "5432:5432"
+
+  # 2. حاوية Redis
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce_redis
+    ports:
+      - "6379:6379"
+
+  # 3. حاوية تطبيق Django REST Framework
+  web:
+    build: .
+    container_name: ecommerce_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=ecomm_db
+      - DB_USER=ecomm_user
+      - DB_PASSWORD=ecomm_pass
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      - db
+      - redis
+
+  # 4. حاوية Celery Worker
+  celery:
+    build: .
+    container_name: ecommerce_celery
+    command: celery -A core worker -l info
+    volumes:
+      - .:/app
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=ecomm_db
+      - DB_USER=ecomm_user
+      - DB_PASSWORD=ecomm_pass
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      - web
+      - redis
+
+volumes:
+  postgres_data:

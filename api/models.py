@@ -5,21 +5,15 @@ from django.core.validators import MinValueValidator , MaxValueValidator
 from django.utils.text import slugify
 
 class Category(models.Model):
-    tiltle=models.CharField(max_length=255, verbose_name=" اسم التصنيف")
-    slug=models.SlugField(unique=True , blank=True)
-    description=models.TextField(blank=True, null=True, verbose_name="الوصف")
+    title = models.CharField(max_length=255, verbose_name="عنوان التصنيف")
+    slug = models.SlugField()
 
     class Meta:
-        verbose_name="تصنيف"
-        verbose_name_plural="التصنيفات"
-#when adding new category the url will read it
-    def save(self,*args,**kwargs):
-        if not self.slug:
-            self.slug=slugify(self.tiltle, allow_unicode=True)
-            super().save(*args,**kwargs)
+        verbose_name = "تصنيف"
+        verbose_name_plural = "التصنيفات"
 
     def __str__(self):
-        return self.tiltle
+        return self.title
 
 
 class Product(models.Model):
@@ -48,7 +42,7 @@ class ProductImage(models.Model):
         related_name='images',
         verbose_name="المنتج"
     )
-    image = models.ImageField(upload_to='store/images', verbose_name="صورة المنتج")
+    image = models.ImageField(upload_to='api/images', verbose_name="صورة المنتج")
 
     class Meta:
         verbose_name = "صورة منتج"
@@ -119,21 +113,35 @@ class CartItem(models.Model):
         unique_together = [['cart', 'product']]
 
 class Order(models.Model):
-    PAYMENT_STATUS_PENDING = 'P'
-    PAYMENT_STATUS_COMPLETE = 'C'
-    PAYMENT_STATUS_FAILED = 'F'
-    PAYMENT_STATUS_CHOICES = [
-        (PAYMENT_STATUS_PENDING, 'قيد الانتظار'),
-        (PAYMENT_STATUS_COMPLETE, 'مكتمل'),
-        (PAYMENT_STATUS_FAILED, 'فشل Payment'),
-    ]
+    # 1. حالة الدفع (Payment Status)
+    class PaymentStatus(models.TextChoices):
+        PENDING = 'P', 'قيد الانتظار'
+        COMPLETE = 'C', 'مكتمل'
+        FAILED = 'F', 'فشل الدفع'
+
+    # 2. حالة تنفيذ الطلب والشحن (Order Status)
+    class OrderStatus(models.TextChoices):
+        PENDING = 'P', 'قيد التجهيز'
+        SHIPPED = 'S', 'تم الشحن'
+        DELIVERED = 'D', 'تم التوصيل'
+        CANCELED = 'C', 'ملغى'
+
     placed_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الطلب")
+    
     payment_status = models.CharField(
-        max_length=1, 
-        choices=PAYMENT_STATUS_CHOICES, 
-        default=PAYMENT_STATUS_PENDING,
+        max_length=1,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING,
         verbose_name="حالة الدفع"
     )
+    
+    order_status = models.CharField(
+        max_length=1,
+        choices=OrderStatus.choices,
+        default=OrderStatus.PENDING,
+        verbose_name="حالة الطلب"
+    )
+
     customer = models.ForeignKey(
         Customer, 
         on_delete=models.PROTECT, 
@@ -144,6 +152,10 @@ class Order(models.Model):
     class Meta:
         verbose_name = "طلب"
         verbose_name_plural = "الطلبات"
+
+    @property
+    def total_price(self):
+        return sum(item.total_price for item in self.items.all())
 
     def __str__(self):
         return f"الطلب رقم #{self.id}"
@@ -171,6 +183,9 @@ class OrderItem(models.Model):
     class Meta:
         verbose_name = "عنصر طلب"
         verbose_name_plural = "عناصر الطلبات"
+    @property
+    def total_price(self):
+        return self.unit_price * self.quantity
 
 
 class Review(models.Model):
