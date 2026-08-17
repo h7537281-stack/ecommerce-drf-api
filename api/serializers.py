@@ -132,3 +132,20 @@ class UpdateOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['payment_status']
+        
+class OrderItemSerializer(serializers.ModelSerializer):
+    """سيريالايزر لعرض عناصر الطلب مع بيانات المنتج السريعة"""
+    product = SimpleProductSerializer(read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'unit_price', 'quantity']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    """سيريالايزر لعرض تفاصيل الطلب الكاملة وقائمة المنتجات المشتراة"""
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'placed_at', 'payment_status', 'items']
