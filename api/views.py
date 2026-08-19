@@ -62,9 +62,11 @@ class OrderViewSet(ModelViewSet):
             return UpdateOrderSerializer
         return OrderSerializer
     def get_queryset(self):
-        user=self.request.user
-        if user.is_staff:
-            return Order.objects.prefetch_related('items__product').all()
-        return Order.objects.filter(user=user).prefetch_related('items__product')
+      user = self.request.user
+      if user.is_staff:
+        return Order.objects.prefetch_related('items__product').all()
+    
+       # ✅ الفلترة عبر علاقة customer بدلاً من user المباشرة
+      return Order.objects.filter(customer__user_id=user.id).prefetch_related('items__product')
 
         

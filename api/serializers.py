@@ -88,7 +88,7 @@ class CartSerializer(serializers.ModelSerializer):
 
 #the cart will be tansmitted to the order
 
-class CreateOrderSerializer(serializers.Serializer):# not model because we used many tabels here
+class CreateOrderSerializer(serializers.Serializer):
     """سيريالايزر مخصص لإنشاء طلب جديد بناءً على رقم السلة"""
     cart_id = serializers.UUIDField()
 
@@ -104,10 +104,13 @@ class CreateOrderSerializer(serializers.Serializer):# not model because we used 
             cart_id = self.validated_data['cart_id']
             user_id = self.context['user_id']
 
-            # 1. إنشاء كائن الطلب لهذا المستخدم
-            order = Order.objects.create(user_id=user_id)
+            # ✅ 1. جلب أو إنشاء كائن Customer المرتبط بالـ user_id الحالي
+            customer, _ = Customer.objects.get_or_create(user_id=user_id)
 
-            # 2. تحويل عناصر السلة إلى عناصر طلب
+            # ✅ 2. إنشاء كائن الطلب وربطه بـ customer بدلاً من user_id المباشر
+            order = Order.objects.create(customer=customer)
+
+            # 3. تحويل عناصر السلة إلى عناصر طلب
             cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)
             order_items = [
                 OrderItem(
@@ -120,7 +123,7 @@ class CreateOrderSerializer(serializers.Serializer):# not model because we used 
             ]
             OrderItem.objects.bulk_create(order_items)
 
-            # 3. حذف السلة بعد تحويلها لطلب ناجح
+            # 4. حذف السلة بعد تحويلها لطلب ناجح
             Cart.objects.filter(pk=cart_id).delete()
 
             return order
@@ -131,6 +134,7 @@ class UpdateOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['payment_status']
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
     """سيريالايزر لعرض عناصر الطلب مع بيانات المنتج السريعة"""
@@ -147,4 +151,5 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'placed_at', 'payment_status', 'items']
+        # ✅ استبدال 'user' بـ 'customer' لتتوافق مع حقول الموديل
+        fields = ['id', 'customer', 'placed_at', 'payment_status', 'items']
