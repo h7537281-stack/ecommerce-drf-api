@@ -26,7 +26,6 @@ class SimpleProductSerializer(serializers.ModelSerializer):
             'unit_price', 
             'category', 
             'images', 
-            'last_update'
         ]
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -132,7 +131,7 @@ class UpdateOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['payment_status']
-        
+
 class OrderItemSerializer(serializers.ModelSerializer):
     """سيريالايزر لعرض عناصر الطلب مع بيانات المنتج السريعة"""
     product = SimpleProductSerializer(read_only=True)

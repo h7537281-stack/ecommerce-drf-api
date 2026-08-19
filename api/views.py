@@ -4,8 +4,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter ,OrderingFilter
 from rest_framework.viewsets import ModelViewSet ,  GenericViewSet
 from rest_framework import mixins
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
 from rest_framework.permissions import IsAdminUser , IsAuthenticated
-from rest_framework.response import Respons 
+from rest_framework.response import Response  
 from api.models import Category , Product , Cart , CartItem , Order , OrderItem
 from api.serializers import CategorySerializer , SimpleProductSerializer , CartItemSerializer , CartSerializer , AddCartItemSerializer , UpdateCartItemSerializer , CreateOrderSerializer , UpdateOrderSerializer , OrderSerializer ,OrderItemSerializer
 
@@ -15,14 +16,14 @@ class CategoryViewSet(ModelViewSet):
     serializer_class=CategorySerializer
 
 class ProductViewSet(ModelViewSet):
-    queryset=Product.objects.prefetch_related('images').all()#to get all images in one request for N+1 problem
+    queryset=Product.objects.prefetch_related('images').all().order_by('id')#to get all images in one request for N+1 problem
     serializer_class=SimpleProductSerializer
     filter_backends=[DjangoFilterBackend,SearchFilter,OrderingFilter]#set the filters tools we gonna use
     filterset_fields=['category_id']# products/?category_id=2/
     Search_fields=['title','description']#products/?title=فيتامين
     Ordering_fields=['unit_price','last_update']#products/?ordering=-unit_price/
 
-class CartViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin , mixins.DestroyModelMixin, GenericViewSet):
+class CartViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin , mixins.DestroyModelMixin, GenericViewSet):
     queryset=Cart.objects.prefetch_related('items__product').all()
     serializer_class=CartSerializer
 
@@ -52,7 +53,7 @@ class OrderViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         order=serializer.save()
         serializer=OrderSerializer(order)
-        return Respons(serializer.data)
+        return Response(serializer.data)
     
     def get_serializer_class(self):
         if self.request.method=='POST':
