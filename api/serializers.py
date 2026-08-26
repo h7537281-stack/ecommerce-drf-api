@@ -1,6 +1,6 @@
 from decimal import Decimal
 from rest_framework import serializers
-from .models import Product , Order ,OrderItem , ProductImage , Review , Cart , CartItem , Category , Address,Customer
+from .models import Product , Order ,OrderItem , Review , Cart , CartItem , Category , Address,Customer
 from django.db import transaction
 class CategorySerializer(serializers.ModelSerializer):
     product_count=serializers.IntegerField(read_only=True,default=0)#conts of products og a singel category 
@@ -8,13 +8,9 @@ class CategorySerializer(serializers.ModelSerializer):
         model=Category
         fields=['id','title', 'slug','product_count']
 
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model=ProductImage
-        fields=['id','image']
 
 class SimpleProductSerializer(serializers.ModelSerializer):
-    images=ProductImageSerializer(many=True, read_only=True)
+   
     class Meta:
         model = Product
         fields = [
@@ -25,7 +21,7 @@ class SimpleProductSerializer(serializers.ModelSerializer):
             'inventory', 
             'unit_price', 
             'category', 
-            'images', 
+            'image', 
         ]
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -153,3 +149,23 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         # ✅ استبدال 'user' بـ 'customer' لتتوافق مع حقول الموديل
         fields = ['id', 'customer', 'placed_at', 'payment_status', 'items']
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['id', 'street', 'city', 'zip_code', 'latitude', 'longitude']
+
+    def create(self, validated_data):
+        # ربط العنوان تلقائياً بالعميل المسجل حالياً
+        user_id = self.context['user_id']
+        customer = Customer.objects.get(user_id=user_id)
+        return Address.objects.create(customer=customer, **validated_data)
+    
+class CustomerSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(read_only=True)
+    # عرض العناوين المربوطة بالعميل فقط لصلة الـ GET (Read-only)
+    addresses = AddressSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Customer
+        fields = ['id', 'user_id', 'phone', 'addresses']

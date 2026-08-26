@@ -23,6 +23,7 @@ class Product(models.Model):
     unit_price=models.DecimalField(max_digits=10, decimal_places=2,validators=[MinValueValidator(1)],verbose_name="السعر")
     inventory = models.PositiveIntegerField(verbose_name="المخزون")
     category=models.ForeignKey(Category,on_delete=models.PROTECT,related_name='products',verbose_name="التصنيف")
+    image = models.ImageField(upload_to='api/images', null=True, blank=True, verbose_name="صورة المنتج")
     class Meta:
         verbose_name = "منتج"
         verbose_name_plural = "المنتجات"
@@ -35,21 +36,6 @@ class Product(models.Model):
         return self.title
 
 
-class ProductImage(models.Model):
-    product = models.ForeignKey(
-        Product, 
-        on_delete=models.CASCADE, 
-        related_name='images',
-        verbose_name="المنتج"
-    )
-    image = models.ImageField(upload_to='api/images', verbose_name="صورة المنتج")
-
-    class Meta:
-        verbose_name = "صورة منتج"
-        verbose_name_plural = "صور المنتجات"
-
-    def __str__(self):
-        return f"صورة {self.product.title}"
 
 class Customer(models.Model):
     user=models.OneToOneField(settings.AUTH_USER_MODEL, verbose_name=("المستخدم"), on_delete=models.CASCADE, related_name='customer')
@@ -71,10 +57,13 @@ class Address(models.Model):
     street = models.CharField(max_length=255, verbose_name="الشارع")
     city = models.CharField(max_length=255, verbose_name="المدينة")
     zip_code = models.CharField(max_length=20, blank=True, null=True, verbose_name="الرمز البريدي")
-
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="خط العرض")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="خط الطول")
     class Meta:
         verbose_name = "عنوان"
         verbose_name_plural = "العناوين"
+    def __str__(self):
+        return f"{self.street}, {self.city}"
 
 class Cart(models.Model):
     # استخدام UUID بدلاً من ID عادي للتوليد التلقائي لرمز فريد لكل سلة

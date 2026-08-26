@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import (
-    Category, Product, ProductImage, 
+    Category, Product,
     Customer, Address, 
     Cart, CartItem, 
     Order, OrderItem, 
@@ -12,9 +12,6 @@ from .models import (
 # 1. Inlines (الجداول المضمنة):لموديلات الرئيسية والمستقلة التي تحتوي على بيانات كثيرة تُدار عبر ModelAdmin خاص بها، بينما الموديلات التابعة الخفيفة تُدمَج كـ TabularInline داخل صفحة موديلها الأب.
 # ==========================================
 
-class ProductImageInline(admin.TabularInline):
-    model = ProductImage
-    extra = 1  # عدد الصفوف الفارغة المتاحة لإضافة صور جديدة فوراً
 
 
 class CartItemInline(admin.TabularInline):
@@ -45,7 +42,7 @@ class ProductAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     search_fields = ['title', 'description']
     list_filter = ['category']
-    inlines = [ProductImageInline]  # إمكانية رفع صور المنتج مباشرة من صفحة المنتج نفسه
+   # إمكانية رفع صور المنتج مباشرة من صفحة المنتج نفسه
 
 
 @admin.register(Customer)
