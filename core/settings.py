@@ -9,8 +9,18 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
-
+import os 
 from pathlib import Path
+import environ
+
+# تهيئة البيئة
+env = environ.Env(
+    # تعبئة القيم الافتراضية إذا لزم الأمر، مثل وضع False لتصحيح الأخطاء
+    DEBUG=(bool, False)
+)
+
+# قراءة ملف الـ .env (تأكدي أنه في نفس مجلد manage.py)
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,13 +46,16 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
     'rest_framework',
     'djoser',
     'rest_framework_simplejwt',
     'drf_spectacular',
     'silk',
     'django_filters',
+    'rest_framework_simplejwt.token_blacklist',
     'api',
 ]
 
@@ -56,7 +69,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
@@ -132,15 +144,27 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+        'OPTIONS': {
+            'host': 'smtp.gmail.com',
+            'port': 587,
+            'use_tls': True,
+            'username': 'hyominstory@gmail.com',  # إيميل الجيميل الخاص بكِ
+            'password': 'tnxrgqxmxzapttxq',     # كود الـ 16 حرفاً الخاص بالـ App Password
+        },
     },
 }
+
+DEFAULT_FROM_EMAIL = 'hyominstory@gmail.com'
+
+
 from datetime import timedelta
 
 # إعدادات REST Framework الأساسية
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -148,12 +172,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
 }
 
 # إعدادات SimpleJWT
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -179,10 +208,6 @@ SPECTACULAR_SETTINGS = {
 }
 
 
-# إعدادات الوسائط والصور (Pillow)
-import os
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Celery Configuration
 CELERY_BROKER_URL = 'redis://localhost:6379/1'
@@ -191,3 +216,31 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+# 💳 إعدادات Stripe الاختبارية
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = 'pk_test_51XXXXXXXXXXXXX'  # المفتاح العام
+STRIPE_WEBHOOK_SECRET = 'whsec_753657bd8b8a341b9bfe19c044b0fab38585858ae55daf160dbc564b63a0190d'
+# Cloudinary Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'hqdovfyb',
+    'API_KEY': '391493566276788',
+    'API_SECRET': '15UrzObn4E1NPnretGk98NO5NpA',
+}
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # نفس البورت ونفس الـ DB المتصلة بـ Celery
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}

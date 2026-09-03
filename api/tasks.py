@@ -1,9 +1,11 @@
 from celery import shared_task
-import time
-@shared_task
-def send_order_confirmation_email(user_email):
-    print(f"starting to send email to {user_email}")
-    time.sleep(5)
-    print(f"email successfuly send to {user_email}")
-    return f"email send to {user_email}"
+from django.core.mail import send_mail
 
+@shared_task
+def send_order_confirmation_email(order_id, customer_email):
+    subject = f"تأكيد الطلب رقم #{order_id}"
+    message = f"شكراً لتسوقك معنا! تم تأكيد طلبك رقم #{order_id} بنجاح."
+    from_email = 'no-reply@ecommerce.com'
+    
+    send_mail(subject, message, from_email, [customer_email])
+    return f"Email sent for order {order_id}"

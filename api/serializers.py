@@ -2,6 +2,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from .models import Product , Order ,OrderItem , Review , Cart , CartItem , Category , Address,Customer
 from django.db import transaction
+
 class CategorySerializer(serializers.ModelSerializer):
     product_count=serializers.IntegerField(read_only=True,default=0)#conts of products og a singel category 
     class Meta:
